@@ -1,0 +1,259 @@
+---
+title: "BellaBeat"
+author: "Lily Steinwold"
+date: "2023-08-01"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+---
+title: "Bellabeat"
+author: "Lily Steinwold"
+date: "2023-08-02"
+output: html_document
+---
+
+# Bellabeat Marketing Analysis
+
+## Ask
+### Defining our Business Task
+    In this presentation we will be analyzing smart device data for Bellbeat’s product line to gain deeper insights into how consumers are using these devices. Our goal is to uncover growth opportunities for the company and provide effective recommendations for our marketing strategy. Here at Bellabeat we are a successful high-tech manufacturer that is focused on health-first smart products for women. These products include the Bellabeat app, the Leaf wellness tracker, the Time wellness tracker, the Spring water bottle, and a subscription-based Bellabeat membership program. Our company has grown rapidly in the women's wellness industry, and now we are seeking to become an even larger player in the global smart device market. By analyzing consumer data on activity, sleep, stress, and reproductive health, we aim to empower women with knowledge about their own health and habits. Key performance metrics for this analysis will include number of steps taken per day, daily activity time, and heart rate; all data is gathered from previously consenting users on the Bellabeat app.This presentation aims to serve as a guide for the executive team with important tasks such as marketing strategy and how to capitalize on growth opportunities.
+
+## Prepare
+### Loading Packages
+```{r}
+library(tidyverse)
+library(ggplot2)
+library(dplyr)
+library(tibble)
+library(tidyr)
+library(readr)
+library(here)
+library(skimr)
+library(janitor)
+```
+
+### Loading and Combining Data
+
+```{r}
+setwd("C:/Users/lsteinwold1/Documents/Data/Bellabeat")
+daily_activity = read.csv("dailyActivity_merged.csv")
+daily_sleep = read.csv("sleepDay_merged.csv")
+weight_log = read.csv("weightLogInfo_merged.csv")
+hourly_steps = read.csv("hourlySteps_merged.csv")
+hourly_calories = read.csv("hourlyCalories_merged.csv")
+```
+
+### Dataset Information, ROCCC, and Limitations 
+    Our data is from a Kaggle set named *Fitbit Fitness Tracker Data* by user Mobius, and it is 18 separate csv files with the majority organized in long format. We will be using ROCCC (Reliable, Original, Comprehensible, Current, Cited) as the benchmark for our analysis
+
+**Reliable** data is accurate, complete and unbiased. Our sample size was only thirty participants which leads to sample selection bias because a number that small will not be representative of the entire population of our user base.
+
+**Original** data means that the source data is locatable if using second and third parties sources. Our data was collected directly from consenting to users.
+
+**Comprehensive** data means it has all required fields with minimal human error. Weight log data allowed users to input their weight manually which could lead to human error; entries were also quite sporadic because the majority of participants did not weigh themselves daily.
+
+**Current** data means that data was collected recently and is still relevant. Our data was collected in a one month period (April 12th - May 12th) in 2016 which was over seven years ago. This is out of date and neglects certain factors like how COVID-19 impacted people’s physical fitness levels. 
+
+**Cited** data is vetted which because we collected from our app we know it is. 
+
+    We will be using specific datasets such as daily activity, daily sleep, hourly steps, hourly calories burned, and weight log to identify trends in smart device usage and how that can influence our marketing strategy. As stated at multiple points in our ROCCC, this data has some serious limitations such as a small sample size, short term data collection period, presence of human error, and outdated data. This means even with comprehensive analysis we should be wary of implementing the results without more recent, longer term data.
+
+## Process
+### Check Column Names
+```{r}
+# Checking that column names are formatted correctly
+colnames(daily_activity)
+
+# Change 'ActivityDate' variable to 'Date' and change Date data type
+# Will be important for merging in Question 4 of our analysis
+names(daily_activity)[2] = 'Date'
+daily_activity$Date <- as.Date(daily_activity$Date, format = "%m/%d/%Y")
+
+
+colnames(daily_sleep)
+
+# Change 'SleepDay' variable to 'Date' and change Date data type
+# Will be important for merging in Question 4 of our analysis
+names(daily_sleep)[2] = 'Date'
+daily_sleep$Date <- as.Date(daily_sleep$Date, format = "%m/%d/%Y")
+
+colnames(hourly_calories) 
+# Showed we have 3 columns "X", "X.1", and "X.2" which all appear to be empty 
+# We will delete them in the next line
+hourly_calories_cleaned = hourly_calories %>% select(-c(X, X.1, X.2))
+
+colnames(hourly_steps)
+
+colnames(weight_log)
+
+```
+
+### Check for Missing & Dupilicated Values
+```{r}
+sum(is.na(daily_activity)) 
+sum(is.na(daily_sleep)) 
+sum(is.na(hourly_calories_cleaned)) 
+sum(is.na(hourly_steps)) 
+sum(is.na(weight_log)) 
+# 65 NA values
+# Upon inspection we see that body fat percentage was optional to fill in
+
+sum(is.na(daily_activity)) 
+sum(is.na(daily_sleep)) 
+sum(is.na(hourly_calories_cleaned)) 
+sum(is.na(hourly_steps)) 
+sum(is.na(weight_log)) # 65 NA values counted as duplicates
+
+# Deleting 'Fat' column because it contains 2 values of 67
+weight_log_cleaned = weight_log %>% select(-c(Fat)) 
+
+```
+
+###  Check Users are Distinct
+```{r}
+# Checking the sample size for each set
+n_distinct(daily_activity$Id)
+n_distinct(hourly_calories_cleaned$Id)
+n_distinct(hourly_steps$Id)
+n_distinct(daily_sleep$Id)
+n_distinct(weight_log_cleaned$Id) 
+```
+
+## Analyze
+### Summarize Data for Insight
+```{r}
+summary(daily_activity) 
+
+summary(daily_sleep) 
+
+summary(hourly_calories_cleaned)
+
+summary(hourly_steps) 
+
+summary(weight_log_cleaned)
+
+```
+**Important Notes for Analysis**
+ - Average daily steps are 10,521 which is above the recommended 10,000 per day (NOTE days where 0 steps were taken have been disregarded to get a more accurate sample)
+ - Users are burning an average of 2,591 calories(NOTE days were 0 calories were burned have been disregarded to get a more accurate sample)
+ - User average 419.5 minutes of sleep per night which is about 7 hours. It is recommended adults get at least 7 hours per night.
+ - Users weigh an average of 158.8Ibs (72.04kg) with an average BMI of 25 which is considered obese
+
+## Share
+### Creating Color and Size Variables for Aesthetics
+```{r}
+color = 'darkblue'
+size = 1.5
+```
+
+### Positive Correlation between Total Daily Steps and Calories Burned
+
+We are looking to see if there is correlation between the Number of Steps a user takes per day and their Daily Calories burned. We have an R of 0.52, so there is a moderate correlation. 
+```{r}
+# Exclude days when total steps were equal to zero
+daily_activity = filter(daily_activity, TotalDistance !=0)
+
+# Find correlation between two variables & round
+R_1 = cor(daily_activity$TotalDistance, daily_activity$Calories)
+R_1 = round(R_1, digits = 2)
+
+# Plot graph
+ggplot(data = daily_activity, mapping = aes(x = TotalDistance, y = Calories, color = Date)) + geom_point(size = size) + geom_smooth() + annotate('text', x = 22.5, y = 1000, label = paste('R = ', R_1))
+```
+### Correlation between Very Active Minutes and Calories Burned
+
+We are looking to see if there is a correlation between Minutes Very Active per Day and Calories Burned per Day. There is a weak positive correlation of 0.41 This tells us that overall in our sample high intensity exercise does not correlate strongly with increased calories burned. Compared with our last graph, we would recommend that someone increase their total steps not very active distance time if they would like to burn more calories
+
+```{r}
+# Exclude days where Total Distance was equal to 0
+daily_activity = filter(daily_activity, VeryActiveDistance != 0)
+
+# Find correlation between two variables and round
+R_2 = cor(daily_activity$VeryActiveDistance, daily_activity$Calories)
+R_2 = round(R_2, digits = 2)
+
+
+# Plot Graph
+ggplot(data = daily_activity, mapping = aes(x = VeryActiveDistance, y = Calories, color = Date)) + geom_point(size = size) + geom_smooth() + annotate('text', x = 17.5, y = 1000, label = paste('R = ', R_2))
+
+```
+
+### Correlation Between Total Minutes Asleep and Calories
+
+This graph is to find correlation between Total Minutes Asleep and Calories burned. Our correlation coefficient is 0.13 which tells us there is no relationship between the variables.
+
+```{r}
+  merged_activity_sleep = inner_join(daily_activity, daily_sleep, by=c('Id','Date'))
+
+# Exclude days when Total Minutes Asleep was 0
+#merged_activity_sleep = filter(merged_activity_sleep, TotalMinutesAsleep != 0)
+
+# Find correlation between two variables and round
+R_3 = cor(merged_activity_sleep$TotalMinutesAsleep, merged_activity_sleep$Calories)
+R_3 = round(R_3, digits = 2)
+R_3
+
+# Plot Graph
+ggplot(data = merged_activity_sleep, mapping = aes(x = TotalMinutesAsleep, y = Calories, color = Date)) + geom_point(size = size) + geom_smooth() + annotate('text', x = 600, y = 1000, label = paste('R = ', R_3))
+
+```
+
+### Total Time Asleep vs Total Time in Bed
+
+Here we tested the correlation between Total Time Asleep with Total Time in Bed. Our correlation coefficient is 0.93 which tells us the longer someone spends in bed the longer they will sleep. This is useful to know for our users that would like to get more sleep.
+
+```{r}
+R_4 = cor(daily_sleep$TotalMinutesAsleep, daily_sleep$TotalTimeInBed)
+R_4 = round(R_4, digits = 2)
+
+ggplot(data = daily_sleep, mapping = aes(x = TotalTimeInBed, y = TotalMinutesAsleep, color = Date)) + geom_point() +geom_smooth() + annotate('text', x = 750, y = 200, label = paste('R = ', R_4))
+```
+
+## TotalTimeInBed and TotalMinutesAsleep throughout the Week
+
+Here we tested to see which days of the week users got the most and the least sleep to see if any trends emerged. Sunday, on average, users got the most sleep with every other day being quite consistent. There is an unexplained peak in sleep time on Wednesday.
+
+```{r}
+day_order <- c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")
+
+daily_sleep_week <- daily_sleep %>%
+  mutate(DayOfWeek = weekdays(Date)) %>%
+  group_by(DayOfWeek) %>%
+  summarise(TotalTimeInBed = mean(TotalTimeInBed),
+            TotalMinutesAsleep = mean(TotalMinutesAsleep))
+
+daily_sleep_week$DayOfWeek <- factor(daily_sleep_week$DayOfWeek, levels = day_order)
+
+# Plot the stacked bar plot
+ggplot(daily_sleep_week, aes(x = DayOfWeek)) +
+  geom_bar(aes(y = TotalTimeInBed), stat = "identity", fill = "deepskyblue", alpha = 0.7) +
+  geom_bar(aes(y = TotalMinutesAsleep), stat = "identity", fill = "darkblue", alpha = 0.7) +
+  labs(x = "Day of the Week", y = "Minutes", title = "Total Time In Bed vs. Total Minutes Asleep by Day of the Week",
+       fill = "Activity Type") +
+  theme_minimal()
+```
+
+### Time Series Plot for TotalSteps, TotalDistance, and Calories over Time
+
+Here we created a time series graph to see if there were any major behavioral shifts regarding Calories burned or Total Steps taken over the two months we gathered our data. Our trend lines remain rather level which shows that the average of our two variables remainded consistent over this period.
+
+```{r}
+# Plot Time Series for TotalSteps, TotalDistance, and Calories
+ggplot(daily_activity, aes(x = Date)) +
+  geom_point(aes(y = TotalSteps, color = "Total Steps"), size = 1) +
+  geom_point(aes(y = Calories, color = "Calories"), size = 1) +
+  geom_smooth(aes(y = TotalSteps), method = "loess", color = color, se = FALSE) +
+  geom_smooth(aes(y = Calories), method = "loess", color = 'deepskyblue', se = FALSE) +
+  labs(x = "Date", y = "Value", title = "Time Series: Total Steps, Total Distance, and Calories",
+       color = "Metric") +
+  scale_x_date(date_labels = "%b %d", date_breaks = "1 week") +
+  theme_minimal()
+```
+## Act
+### Final Conclusions Based on Analysis
+
+Through our analysis of the data, we have found that the most imp
